@@ -29,7 +29,30 @@ metadata {
     }
 }
 
+def parse(description) {
+    def msg = parseLanMessage(description)
 
+    def headersAsString = msg.header // => headers as a string
+    def headerMap = msg.headers      // => headers as a Map
+    def body = msg.body              // => request body as a string
+    def status = msg.status          // => http status code of the response
+    
+    log.info "Header: " +  headersAsString
+    log.info "HeaderMap: " + headerMap
+    log.info "Body: " + body
+    log.info "Status: " + status
+     
+    
+    def json = msg.json              // => any JSON included in response body, as a data structure of lists and maps
+    //log.info json
+    //def xml = msg.xml                // => any XML included in response body, as a document tree structure
+    //log.info xml
+    //def data = msg.data              // => either JSON or XML in response body (whichever is specified by content-type header in response)
+    //log.info data
+
+
+
+}
 
 
 
