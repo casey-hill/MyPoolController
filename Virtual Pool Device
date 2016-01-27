@@ -9,18 +9,9 @@ metadata {
     preferences {
     input("CameraIP", "string", title:"Camera IP Address", description: "Please enter your camera's IP Address", required: true, displayDuringSetup: true)
     input("CameraPort", "string", title:"Camera Port", description: "Please enter your camera's Port", defaultValue: 80 , required: true, displayDuringSetup: true)
-    input("CameraPath", "string", title:"Camera Path to Image", description: "Please enter the path to the image", defaultValue: "/SnapshotJPEG?Resolution=640x480&Quality=Clarity", required: true, displayDuringSetup: true)
-    input("CameraAuth", "bool", title:"Does Camera require User Auth?", description: "Please choose if the camera requires authentication (only basic is supported)", defaultValue: true, displayDuringSetup: true)
-    input("CameraPostGet", "string", title:"Does Camera use a Post or Get, normally Get?", description: "Please choose if the camera uses a POST or a GET command to retreive the image", defaultValue: "GET", displayDuringSetup: true)
-    input("CameraUser", "string", title:"Camera User", description: "Please enter your camera's username", required: false, displayDuringSetup: true)
-    input("CameraPassword", "string", title:"Camera Password", description: "Please enter your camera's password", required: false, displayDuringSetup: true)
     }
     
-    simulator {
-    
-    }
-
-    tiles {
+     tiles {
         standardTile("camera", "device.image", width: 1, height: 1, canChangeIcon: false, inactiveLabel: true, canChangeBackground: true) {
             state "default", label: "", action: "", icon: "st.camera.dropcam-centered", backgroundColor: "#FFFFFF"
         }
@@ -38,56 +29,9 @@ metadata {
     }
 }
 
-def parse(String description) {
-    log.debug "Parsing '${description}'"
-    def map = stringToMap(description)
 
-    def result = []
 
-    if (map.bucket && map.key) { //got a s3 pointer
-        putImageInS3(map)
-    }
-    else if (map.headers && map.body) { //got device info response
-        def headerString = new String(map.headers.decodeBase64())
-        if (headerString.contains("404 Not Found")) {
-            state.snapshot = "/snapshot.cgi"
-           }
 
-        if (map.body) {
-        def bodyString = new String(map.body.decodeBase64())
-        def body = new XmlSlurper().parseText(bodyString)
-        def productName = body?.productName?.text()
-        if (productName) {
-            log.trace "Product Name: $productName"
-            state.snapshot = ""
-        }
-    }
-    }
-
-    result
-}
-
-def putImageInS3(map) {
-
-    def s3ObjectContent
-
-    try {
-        def imageBytes = getS3Object(map.bucket, map.key + ".jpg")
-
-        if(imageBytes)
-        {
-            s3ObjectContent = imageBytes.getObjectContent()
-            def bytes = new ByteArrayInputStream(s3ObjectContent.bytes)
-            storeImage(getPictureName(), bytes)
-        }
-    }
-    catch(Exception e) {
-        log.error e
-    }
-    finally {
-        if (s3ObjectContent) { s3ObjectContent.close() }
-    }
-}
 
 // handle commands
 def take() {
@@ -146,11 +90,6 @@ def take() {
 
 
 
-private getPictureName() {
-    def pictureUuid = java.util.UUID.randomUUID().toString().replaceAll('-', '')
-    return device.deviceNetworkId + "_$pictureUuid" + ".jpg"
-}
-
 private String convertIPtoHex(ipAddress) { 
     String hex = ipAddress.tokenize( '.' ).collect {  String.format( '%02x', it.toInteger() ) }.join()
     log.debug "IP address entered is $ipAddress and the converted hex code is $hex"
@@ -180,3 +119,4 @@ private getHostAddress() {
     def ip = convertHexToIP(parts[0])
     def port = convertHexToInt(parts[1])
     return ip + ":" + port
+}
