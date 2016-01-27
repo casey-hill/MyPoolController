@@ -1,31 +1,22 @@
 metadata {
     definition (name: "TestPost2", namespace: "ps", author: "patrick@patrickstuart.com") {
         capability "Image Capture"
-        capability "Sensor"
-        capability "Actuator"
+        capability "Polling"
         
     }
 
     preferences {
-    input("CameraIP", "string", title:"Camera IP Address", description: "Please enter your camera's IP Address", required: true, displayDuringSetup: true)
-    input("CameraPort", "string", title:"Camera Port", description: "Please enter your camera's Port", defaultValue: 80 , required: true, displayDuringSetup: true)
-    }
+    input("CameraIP", "string", title:"Camera IP Address", description: "Please enter your camera's IP Address", required: false, displayDuringSetup: true)
+    input("CameraPort", "string", title:"Camera Port", description: "Please enter your camera's Port", defaultValue: 80 , required: false, displayDuringSetup: true)
+   }
     
-     tiles {
-        standardTile("camera", "device.image", width: 1, height: 1, canChangeIcon: false, inactiveLabel: true, canChangeBackground: true) {
-            state "default", label: "", action: "", icon: "st.camera.dropcam-centered", backgroundColor: "#FFFFFF"
-        }
-
-        carouselTile("cameraDetails", "device.image", width: 3, height: 2) { }
-
+   
+    tiles {
         standardTile("take", "device.image", width: 1, height: 1, canChangeIcon: false, inactiveLabel: true, canChangeBackground: false) {
-            state "take", label: "Take", action: "Image Capture.take", icon: "st.camera.camera", backgroundColor: "#FFFFFF"
-            state "taking", label:'Taking', action: "", icon: "st.camera.take-photo", backgroundColor: "#53a7c0"
-            state "image", label: "Take", action: "Image Capture.take", icon: "st.camera.camera", backgroundColor: "#FFFFFF"
-        }
-
-        main "camera"
-        details(["cameraDetails", "take", "error"])
+            state "take", label: "Take", action: "take", icon: "st.camera.camera", backgroundColor: "#FFFFFF"
+         }
+        main "take"
+        details(["take"])
     }
 }
 
@@ -41,25 +32,13 @@ def parse(description) {
     log.info "HeaderMap: " + headerMap
     log.info "Body: " + body
     log.info "Status: " + status
-     
-    
-    def json = msg.json              // => any JSON included in response body, as a data structure of lists and maps
-    //log.info json
-    //def xml = msg.xml                // => any XML included in response body, as a document tree structure
-    //log.info xml
-    //def data = msg.data              // => either JSON or XML in response body (whichever is specified by content-type header in response)
-    //log.info data
-
-
-
 }
 
 
 
 // handle commands
 def take() {
-    def userpassascii = "${CameraUser}:${CameraPassword}"
-    def userpass = "Basic " + userpassascii.encodeAsBase64().toString()
+
     def host = CameraIP 
     def hosthex = convertIPtoHex(host)
     def porthex = convertPortToHex(CameraPort)
@@ -67,51 +46,34 @@ def take() {
     
     log.debug "The device id configured is: $device.deviceNetworkId"
     
-    def path = CameraPath 
+    def path = "/index.htm" 
     log.debug "path is: $path"
-    log.debug "Requires Auth: $CameraAuth"
-    log.debug "Uses which method: $CameraPostGet"
     
     def headers = [:] 
     headers.put("HOST", "$host:$CameraPort")
-       if (CameraAuth == "true") {
-        headers.put("Authorization", userpass)
-    }
+
     
     log.debug "The Header is $headers"
     
-    def method = "GET"
-    try {
-        if (CameraPostGet.toUpperCase() == "POST") {
-            method = "POST"
-            }
-        }
-    catch (Exception e) { // HACK to get around default values not setting in devices
-        settings.CameraPostGet = "GET"
-        log.debug e
-        log.debug "You must not of set the perference for the CameraPOSTGET option"
-    }
-    
-    log.debug "The method is $method"
+    //def method = "GET"
+       
+    //log.debug "The method is $method"
     
     try {
     def hubAction = new physicalgraph.device.HubAction(
-        method: method,
+        method: "GET",
         path: path,
         headers: headers
         )
         
-    //hubAction.options = [outputMsgToS3:true]
-    log.debug hubAction
+    log.debug "Are the hub Actions: " + hubAction
     hubAction
     }
     catch (Exception e) {
         log.debug "Hit Exception $e on $hubAction"
     }
-    
+    return hubAction
 }
-
-
 
 private String convertIPtoHex(ipAddress) { 
     String hex = ipAddress.tokenize( '.' ).collect {  String.format( '%02x', it.toInteger() ) }.join()
@@ -142,4 +104,4 @@ private getHostAddress() {
     def ip = convertHexToIP(parts[0])
     def port = convertHexToInt(parts[1])
     return ip + ":" + port
-}
+    }
